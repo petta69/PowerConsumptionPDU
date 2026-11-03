@@ -69,7 +69,7 @@ def create_double_line_chart(data):
     ax.legend()
 
     #plt.show()
-    plt.savefig(f'powerchart.png', dpi=300, bbox_inches='tight')
+    plt.savefig(f'static/powerchart.png', dpi=300, bbox_inches='tight')
 
 
 

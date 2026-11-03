@@ -2,6 +2,8 @@ import mysql.connector
 from datetime import datetime, timezone
 import random
 import time
+from snmp import Engine, SNMPv1
+
 
 ## Create the Power table
 # create table Power (id int AUTO_INCREMENT NOT NULL PRIMARY KEY, outlet_no int NOT NULL, event_time DATETIME NOT NULL, value VARCHAR(255) NOT NULL);
@@ -55,6 +57,18 @@ def insert_data(outlet_no, event_time, value):
             cursor.close()
             connection.close()
             print("MySQL connection is closed.")
+
+
+def get_data():
+    # Initialize the SNMP engine for version 1
+    engine = Engine(SNMPv1)
+
+    # Create a Manager pointing to the target IP and community string
+    localhost = engine.Manager("127.0.0.1", community=b"public")
+
+    # Send an SNMPv1 GET request for system description and location OIDs
+    response = localhost.get("1.3.6.1.4.1.21317.1.3.2.3.2.1.4", "1.3.6.1.4.1.21317.1.3.2.3.2.1.4.1")
+    print(response)
 
 
 if __name__ == "__main__":
