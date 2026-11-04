@@ -4,6 +4,10 @@ import random
 import time
 from snmp import Engine, SNMPv1
 
+## Create user
+# CREATE USER 'sony'@'localhost' IDENTIFIED BY 'Sony123456';
+# GRANT ALL PRIVILEGES ON *.* TO 'sony'@'localhost';
+
 
 ## Create the Power table
 # create table Power (id int AUTO_INCREMENT NOT NULL PRIMARY KEY, outlet_no int NOT NULL, event_time DATETIME NOT NULL, value VARCHAR(255) NOT NULL);

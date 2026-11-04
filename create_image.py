@@ -63,13 +63,16 @@ def create_double_line_chart(data):
         yticks=np.arange(min(np_data_0[:,0].min(), np_data_1[:,0].min()), max(np_data_0[:,0].max(), np_data_1[:,0].max()), 20))
     ax.axhline(np.mean(np.concatenate([np_data_0[:,0], np_data_1[:,0]])), color='gray', linestyle='--', linewidth=1)
 
+    ## Reverse X axis to make sure latest value is on the right side of the chart
+    ax.set_xinverted(True)
+
     ax.set_title("Power Consumption (W)")
     ax.set_xlabel("Time")
     ax.set_ylabel("Power (W)")
     ax.legend()
 
     #plt.show()
-    plt.savefig(f'static/powerchart.png', dpi=300, bbox_inches='tight')
+    plt.savefig(f'static/powerchart.png', dpi=200, bbox_inches='tight')
 
 
 
