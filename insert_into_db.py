@@ -203,8 +203,13 @@ def main():
 
 
         ## Create chart    
-        data = get_data(no_events=50)
-        create_double_line_chart(data)
+        try:
+            data = get_data(no_events=50)
+            create_double_line_chart(data)
+        except:
+            print("DEBUG: Error occurred while creating the chart. Retrying in 5 seconds...")
+            continue
+
 
         time.sleep(5)  # Sleep for 5 seconds before inserting the next record
 
