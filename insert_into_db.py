@@ -190,10 +190,8 @@ def snmp_get_data():
 def main():
     while True:
         ## Create fake data and ingest
-        try:
-            iso_utc_now = datetime.now(timezone.utc).isoformat()
-        except:
-            iso_utc_now = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%S')
+#        iso_utc_now = datetime.now(timezone.utc).isoformat()
+        iso_utc_now = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%S')
         event_time = iso_utc_now
 
         outlet_no = random.randint(0, 1)

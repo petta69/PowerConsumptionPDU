@@ -2,7 +2,6 @@ import sys
 import mysql.connector
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 
 def get_data(no_events=100):
     np_data = np.empty((0, 3))
@@ -56,6 +55,8 @@ def create_double_line_chart(data):
     ## Plot data
     ax.plot(x_data, np_data_0[:,0], color='red', linewidth=2, label='55BZ40L')
     ax.plot(x_data, np_data_1[:,0], color='yellow', linewidth=2, label='55BZ40P')
+
+    ax.yaxis.set_label_coords(-0.15, 0.5)
 
     ## Set axis limits and ticks
     ax.set(xlim=(-1, len(x_data)), xticks=np.arange(0, len(x_data), len(x_data)/5),
