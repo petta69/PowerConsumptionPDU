@@ -6,6 +6,8 @@ import time
 from snmp import Engine, SNMPv1
 import matplotlib.pyplot as plt
 import numpy as np
+import minimalmodbus
+import serial
 
 ## Create user
 # CREATE USER 'sony'@'localhost' IDENTIFIED BY 'Sony123456';
@@ -14,6 +16,19 @@ import numpy as np
 
 ## Create the Power table
 # create table Power (id int AUTO_INCREMENT NOT NULL PRIMARY KEY, outlet_no int NOT NULL, event_time DATETIME NOT NULL, value VARCHAR(255) NOT NULL);
+
+## PZEM
+# Initialize the instrument (Port: /dev/ttyUSB0, Default Slave Address: 1)
+pzem0 = minimalmodbus.Instrument('/dev/ttyUSB0', 1)
+
+# Configure serial settings required by PZEM-004T v3.0
+pzem0.serial.baudrate = 9600
+pzem0.serial.bytesize = 8
+pzem0.serial.parity = serial.PARITY_NONE
+pzem0.serial.stopbits = 1
+pzem0.serial.timeout = 0.5
+pzem0.mode = minimalmodbus.MODE_RTU
+
 
 def get_data(no_events=100):
     np_data = np.empty((0, 3))
@@ -44,6 +59,34 @@ def get_data(no_events=100):
         if 'cursor' in locals(): cursor.close()
         if 'conn' in locals(): conn.close()
         return np_data
+
+def delete_old_data(num_hour=12):
+    try:
+        # 1. Establish the connection
+        conn = mysql.connector.connect(
+            host="localhost",
+            user="sony",
+            password="Sony123456",
+            database="PowerConsumption"
+        )
+        cursor = conn.cursor()
+
+        # 2. Execute a parameterized query (prevents SQL injection)
+        query = "delete from Power where event_time < NOW() - INTERVAL %s HOUR"
+        cursor.execute(query, (num_hour,))
+
+
+    except mysql.connector.Error as err:
+        print(f"Database error: {err}")
+        return f"Error: {err}"
+
+    finally:
+        # 4. Clean up resources
+        if 'cursor' in locals(): cursor.close()
+        if 'conn' in locals(): conn.close()
+        return f"Success: Deleted records older than {num_hour} hours"
+
+
 
 
 def insert_data(outlet_no, event_time, value):
@@ -116,22 +159,17 @@ def create_double_line_chart(data):
         elif data[i,1] == '1':
             np_data_1 = np.append(np_data_1, [[float(data[i,2])]], axis=0)
 
+    ## Make sure we have enough data points to plot
+    if len(x_data) < 25 or np_data_0.size == 0 or np_data_1.size == 0:
+        print("DEBUG: Not enough data points to plot. Skipping chart creation.")
+        return  
+
     ## Plot data
-    ax.plot(x_data, np_data_0[:,0], color='red', linewidth=2, label='55BZ40L')
-    ax.plot(x_data, np_data_1[:,0], color='yellow', linewidth=2, label='55BZ40P')
-#    ax.legend(loc='upper left', bbox_to_anchor=(0.02, 0.98), frameon=True)
-    # ax.legend(
-    #     bbox_to_anchor=(0.0, 0.0, 1.0, 1.0), # Static container bounds
-    #     loc="upper left",                    # Traps text inside container corner
-    #     frameon=True,                        # Draws background frame
-    #     facecolor='#1c1c1c',                 # Dark theme friendly box color
-    #     edgecolor='gray',                    # Clean borders
-    #     framealpha=1.0                       # 100% opaque block over passing data
-    # )
+    bzl_plot, = ax.plot(x_data, np_data_0[:,0], color='red', linewidth=2, label='55BZ40L')
+    bzp_plot, = ax.plot(x_data, np_data_1[:,0], color='yellow', linewidth=2, label='55BZ40P')
+
+    ax.legend(handles=[bzl_plot, bzp_plot], loc='upper left', bbox_to_anchor=(0.02, 0.98), frameon=True, facecolor='#1c1c1c', edgecolor='gray', framealpha=1.0)
     
-
-    #ax.yaxis.set_label_coords(-0.15, 0.5)
-
     ## Set axis limits and ticks
     ax.set(xlim=(-1, len(x_data)), xticks=np.arange(0, len(x_data), len(x_data)//5),
         ylim=(min(np_data_0[:,0].min(), np_data_1[:,0].min())-10, max(np_data_0[:,0].max(), np_data_1[:,0].max())+10),
@@ -145,28 +183,17 @@ def create_double_line_chart(data):
     # these are matplotlib.patch.Patch properties
     props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
 
-    # place a text box in upper left in axes coords
-    ax.text(0.05, -0.15, f'Accumulated: Outlet 0 = {acc_data_0}, Outlet 1 = {acc_data_1}', transform=ax.transAxes, fontsize=10,
+    # place a text box in under graph in axes coords
+    ax.text(0.05, -0.15, f'Accumulated: 55BZ40L = {acc_data_0}W, 55BZ40P = {acc_data_1}W', transform=ax.transAxes, fontsize=10,
             verticalalignment='center', bbox=props)
 
     ## Reverse X axis to make sure latest value is on the right side of the chart
-    #ax.set_xinverted(True)
+    ax.set_xinverted(True)
     
 
     ax.set_title("Power Consumption (W)")
     ax.set_xlabel("Time")
     ax.set_ylabel("Power (W)")
-
-    ax.legend(
-        loc="baseline",                    # Aligns the text baseline perfectly with the title text
-        bbox_to_anchor=(0.13, 0.92),       # Absolute canvas coordinates (X=0.13 is the left margin line)
-        bbox_transform=fig.transFigure,    # Bypasses axes shifts completely
-        ncol=2,                            # Places labels horizontally side-by-side to save vertical space
-        frameon=True,                      
-        facecolor='#1c1c1c',               
-        edgecolor='none',                  # Strips the border box away for a clean top-bar look
-        framealpha=1.0                     
-    )
 
     #plt.show()
     plt.savefig(f'static/powerchart.png', dpi=200, bbox_inches='tight')
@@ -179,24 +206,54 @@ def snmp_get_data():
     engine = Engine(SNMPv1)
 
     # Create a Manager pointing to the target IP and community string
-    localhost = engine.Manager("127.0.0.1", community=b"public")
+    pdu = engine.Manager("192.168.197.12", community=b"public")
 
     # Send an SNMPv1 GET request for system description and location OIDs
-    response = localhost.get("1.3.6.1.4.1.21317.1.3.2.3.2.1.4", "1.3.6.1.4.1.21317.1.3.2.3.2.1.4.1")
+    #response = pdu.get("1.3.6.1.4.1.21317.1.3.2.3.2.1.4", "1.3.6.1.4.1.21317.1.3.2.3.2.1.4.1")
+    response = pdu.get("1.3.6.1.4.1.21317")
     print(response)
 
 
+def get_pzem0_data():
+    try:
+        voltage = pzem0.read_register(0, 1)  # Voltage in volts
+        current = pzem0.read_register(1, 2)  # Current in amperes
+        power = pzem0.read_register(2, 1)    # Power in watts
+        energy = pzem0.read_register(3, 1)   # Energy in watt-hours
+        frequency = pzem0.read_register(4, 1) # Frequency in hertz
+        pf = pzem0.read_register(5, 2)       # Power factor
+
+        # return {
+        #     "voltage": voltage,
+        #     "current": current,
+        #     "power": power,
+        #     "energy": energy,
+        #     "frequency": frequency,
+        #     "power_factor": pf
+        # }
+
+        return power
+    
+    except Exception as e:
+        print(f"Error reading from PZEM: {e}")
+        return None
 
 def main():
     while True:
+        ## Start by deleting old data (older than 12 hours)
+        delete_old_data(num_hour=12)
+
+
         ## Create fake data and ingest
 #        iso_utc_now = datetime.now(timezone.utc).isoformat()
         iso_utc_now = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%S')
         event_time = iso_utc_now
 
         outlet_no = random.randint(0, 1)
-        value = random.randint(50, 230)
+        #value = random.randint(50, 230)
         value2 = random.randint(50, 230)
+
+        value = get_pzem0_data()
 
         insert_data(0, event_time, value)
         insert_data(1, event_time, value2)
