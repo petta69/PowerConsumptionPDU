@@ -216,21 +216,23 @@ def snmp_get_data():
 
 def get_pzem0_data():
     try:
-        voltage = pzem0.read_register(0, 1)  # Voltage in volts
-        current = pzem0.read_register(1, 2)  # Current in amperes
-        power = pzem0.read_register(2, 1)    # Power in watts
-        energy = pzem0.read_register(3, 1)   # Energy in watt-hours
-        frequency = pzem0.read_register(4, 1) # Frequency in hertz
-        pf = pzem0.read_register(5, 2)       # Power factor
+        # Read 10 input registers starting at address 0x0000 (Function code 4)
+        data = pzem0.read_registers(0, 10, functioncode=4)
 
-        # return {
-        #     "voltage": voltage,
-        #     "current": current,
-        #     "power": power,
-        #     "energy": energy,
-        #     "frequency": frequency,
-        #     "power_factor": pf
-        # }
+        voltage = data[0] / 10.0                                # Volts (V)
+        current = ((data[2] << 16) + data[1]) / 1000.0          # Amperes (A)
+        power = ((data[4] << 16) + data[3]) / 10.0              # Watts (W)
+        energy = ((data[6] << 16) + data[5])                    # Watt-hours (Wh)
+        frequency = data[7] / 10.0                              # Hertz (Hz)
+        power_factor = data[8] / 100.0                          # Power Factor (PF)
+        alarm = data[9]                                         # 0xFFFF = Alarm, 0x0000 = OK
+
+        print(f"Voltage:      {voltage} V")
+        print(f"Current:      {current} A")
+        print(f"Power:        {power} W")
+        print(f"Energy:       {energy} Wh")
+        print(f"Frequency:    {frequency} Hz")
+        print(f"Power Factor: {power_factor}")
 
         return power
     
