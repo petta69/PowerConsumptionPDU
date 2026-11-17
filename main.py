@@ -15,7 +15,7 @@ templates = Jinja2Templates(directory="template")
 # Path to your image on disk
 IMAGE_PATH = os.path.abspath("static/powerchart.png")
 
-def get_data(no_events=100):
+def get_data(no_minutes=120):
     np_data = np.empty((0, 3))
     try:
         # 1. Establish the connection
@@ -28,8 +28,8 @@ def get_data(no_events=100):
         cursor = conn.cursor()
 
         # 2. Execute a parameterized query (prevents SQL injection)
-        query = "SELECT event_time, value, outlet_no FROM Power ORDER BY event_time DESC LIMIT %s"
-        cursor.execute(query, (no_events,))
+        query = "SELECT event_time, value, outlet_no FROM Power where event_time > NOW() - INTERVAL %s MINUTE ORDER BY event_time DESC"
+        cursor.execute(query, (no_minutes,))
 
         # 3. Fetch and display the results
         for row in cursor.fetchall():
@@ -49,7 +49,7 @@ def create_double_line_chart(data):
     plt.style.use('dark_background')
 
     # plot
-    fig, ax = plt.subplots(figsize=(12, 4))
+    fig, ax = plt.subplots(figsize=(12, 5), dpi=300)
 
     ax.invert_xaxis()
 
@@ -144,7 +144,7 @@ async def index(request: Request):
 async def get_image_version():
     ## Create chart    
     try:
-        data = get_data(no_events=50)
+        data = get_data(no_minutes=70)
         create_double_line_chart(data)
     except Exception as e:
         print(f"DEBUG: Error creating chart: {e}")
