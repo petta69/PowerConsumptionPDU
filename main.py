@@ -84,14 +84,14 @@ def create_double_line_chart(data):
     ax.axhline(np.mean(np.concatenate([np_data_0[:,0], np_data_1[:,0]])), color='gray', linestyle='--', linewidth=1)
 
     ## Calc accumulated data for each outlet
-    acc_data_0 = np.sum(np_data_0[:,0])
-    acc_data_1 = np.sum(np_data_1[:,0])
+    acc_data_0 = np.sum(np_data_0[:,0]) / 1000
+    acc_data_1 = np.sum(np_data_1[:,0]) / 1000
 
     # these are matplotlib.patch.Patch properties
     props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
 
     # place a text box in under graph in axes coords
-    ax.text(0, -0.3, f'Accumulated: \n55BZ40L = {acc_data_0:.1f}W\n55BZ40P = {acc_data_1:.1f}W', 
+    ax.text(0, -0.3, f'Accumulated: \n55BZ40L = {acc_data_0:.2f}kW\n55BZ40P = {acc_data_1:.2f}kW', 
             transform=ax.transAxes, 
             fontsize=10,
             verticalalignment='center',
