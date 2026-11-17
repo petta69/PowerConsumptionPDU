@@ -49,7 +49,7 @@ def create_double_line_chart(data):
     plt.style.use('dark_background')
 
     # plot
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(12, 4))
 
     ax.invert_xaxis()
 
@@ -91,8 +91,19 @@ def create_double_line_chart(data):
     props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
 
     # place a text box in under graph in axes coords
-    ax.text(0.05, -0.15, f'Accumulated: 55BZ40L = {acc_data_0}W, 55BZ40P = {acc_data_1}W', transform=ax.transAxes, fontsize=10,
-            verticalalignment='center', bbox=props)
+    ax.text(0, -0.3, f'Accumulated: \n55BZ40L = {acc_data_0:.1f}W\n55BZ40P = {acc_data_1:.1f}W', 
+            transform=ax.transAxes, 
+            fontsize=10,
+            verticalalignment='center',
+            color='blue',
+            bbox=dict(
+                facecolor="yellow",   # Background fill color
+                edgecolor="black",    # Border color (use "none" for no border)
+                alpha=0.8,            # Background transparency (0 to 1)
+                pad=5.0,              # Padding inside the box in points
+                boxstyle="round,pad=0.5"  # Optional: rounded corners
+                ),
+            )
 
     ## Reverse X axis to make sure latest value is on the right side of the chart
     ax.set_xinverted(True)
@@ -104,7 +115,7 @@ def create_double_line_chart(data):
 
     #plt.show()
     plt.savefig(f'static/powerchart.png', dpi=200, bbox_inches='tight')
-    print(f"DEBUG: Chart saved to static/powerchart.png with accumulated values: Outlet 0 = {acc_data_0}, Outlet 1 = {acc_data_1}")
+    print(f"DEBUG: Chart saved to static/powerchart.png with accumulated values: Outlet 0 = {acc_data_0:.1f}, Outlet 1 = {acc_data_1:.1f}")
     plt.close(fig)  # Close the figure to free up memory
 
 
