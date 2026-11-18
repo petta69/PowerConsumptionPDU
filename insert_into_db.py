@@ -31,6 +31,17 @@ pzem0.serial.stopbits = 1
 pzem0.serial.timeout = 0.5
 pzem0.mode = minimalmodbus.MODE_RTU
 
+# Initialize the instrument (Port: /dev/ttyUSB1, Default Slave Address: 1)
+pzem1 = minimalmodbus.Instrument('/dev/ttyUSB1', 1)
+
+# Configure serial settings required by PZEM-004T v3.0
+pzem1.serial.baudrate = 9600
+pzem1.serial.bytesize = 8
+pzem1.serial.parity = serial.PARITY_NONE
+pzem1.serial.stopbits = 1
+pzem1.serial.timeout = 0.5
+pzem1.mode = minimalmodbus.MODE_RTU
+
 
 def delete_old_data(num_hour=12):
     try:
@@ -134,15 +145,39 @@ def get_pzem0_data():
         power_factor = data[8] / 100.0                          # Power Factor (PF)
         alarm = data[9]                                         # 0xFFFF = Alarm, 0x0000 = OK
 
-        print(f"Voltage:      {voltage} V")
-        print(f"Current:      {current} A")
-        print(f"Power:        {power} W")
-        print(f"Energy:       {energy} Wh")
-        print(f"Frequency:    {frequency} Hz")
-        print(f"Power Factor: {power_factor}")
+        # print(f"Voltage:      {voltage} V")
+        # print(f"Current:      {current} A")
+        print(f"Power1:        {power} W")
+        # print(f"Energy:       {energy} Wh")
+        # print(f"Frequency:    {frequency} Hz")
+        # print(f"Power Factor: {power_factor}")
 
         return power
-    
+    except Exception as e:
+        print(f"Error reading from PZEM: {e}")
+        return None
+
+def get_pzem1_data():
+    try:
+        # Read 10 input registers starting at address 0x0000 (Function code 4)
+        data = pzem1.read_registers(0, 10, functioncode=4)
+
+        voltage = data[0] / 10.0                                # Volts (V)
+        current = ((data[2] << 16) + data[1]) / 1000.0          # Amperes (A)
+        power = ((data[4] << 16) + data[3]) / 10.0              # Watts (W)
+        energy = ((data[6] << 16) + data[5])                    # Watt-hours (Wh)
+        frequency = data[7] / 10.0                              # Hertz (Hz)
+        power_factor = data[8] / 100.0                          # Power Factor (PF)
+        alarm = data[9]                                         # 0xFFFF = Alarm, 0x0000 = OK
+
+        # print(f"Voltage:      {voltage} V")
+        # print(f"Current:      {current} A")
+        print(f"Power2:        {power} W")
+        # print(f"Energy:       {energy} Wh")
+        # print(f"Frequency:    {frequency} Hz")
+        # print(f"Power Factor: {power_factor}")
+
+        return power
     except Exception as e:
         print(f"Error reading from PZEM: {e}")
         return None
@@ -160,14 +195,15 @@ def main():
 
         outlet_no = random.randint(0, 1)
         #value = random.randint(50, 230)
-        value2 = random.randint(50, 230)
+        #value2 = random.randint(50, 230)
 
         value = get_pzem0_data()
+        value2 = get_pzem1_data()
 
         insert_data(0, event_time, value)
         insert_data(1, event_time, value2)
 
-        time.sleep(2)  # Sleep for 5 seconds before inserting the next record
+        time.sleep(2)  # Sleep for x seconds before inserting the next record
 
 
 if __name__ == "__main__":
